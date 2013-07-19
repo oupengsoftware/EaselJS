@@ -96,8 +96,9 @@ var p = Container.prototype = new createjs.DisplayObject();
 	 * @return {Boolean} Boolean indicating whether the display object would be visible if drawn to a canvas
 	 **/
 	p.isVisible = function() {
-		var hasContent = this.cacheCanvas || this.children.length;
-		return !!(this.visible && this.alpha > 0 && this.scaleX != 0 && this.scaleY != 0 && hasContent);
+		var props = this.props,
+		hasContent = props.cacheCanvas || this.children.length;
+		return !!(props.visible && props.alpha > 0 && props.scaleX != 0 && props.scaleY != 0 && hasContent);
 	}
 
 	/**
@@ -416,7 +417,7 @@ var p = Container.prototype = new createjs.DisplayObject();
 			var arr = o.children = [];
 			for (var i=0, l=this.children.length; i<l; i++) {
 				var clone = this.children[i].clone(recursive);
-				clone.parent = o;
+				clone.props.parent = o;
 				arr.push(clone);
 			}
 		}
@@ -463,14 +464,15 @@ var p = Container.prototype = new createjs.DisplayObject();
 	 * @protected
 	 **/
 	p._getObjectsUnderPoint = function(x, y, arr, mouseEvents) {
+		var props = this.props;
 		var ctx = createjs.DisplayObject._hitTestContext;
 		var canvas = createjs.DisplayObject._hitTestCanvas;
-		var mtx = this._matrix;
+		var mtx = props._matrix;
 		var hasHandler = this._hasMouseHandler(mouseEvents);
 
 		// if we have a cache handy & this has a handler, we can use it to do a quick check.
 		// we can't use the cache for screening children, because they might have hitArea set.
-		if (!this.hitArea && this.cacheCanvas && hasHandler) {
+		if (!props.hitArea && props.cacheCanvas && hasHandler) {
 			this.getConcatenatedMatrix(mtx);
 			ctx.setTransform(mtx.a,  mtx.b, mtx.c, mtx.d, mtx.tx-x, mtx.ty-y);
 			ctx.globalAlpha = mtx.alpha;
@@ -486,8 +488,9 @@ var p = Container.prototype = new createjs.DisplayObject();
 		var l = this.children.length;
 		for (var i=l-1; i>=0; i--) {
 			var child = this.children[i];
-			var hitArea = child.hitArea;
-			if (!child.visible || (!hitArea && !child.isVisible()) || (mouseEvents && !child.mouseEnabled)) { continue; }
+			var propsc = child.props
+			var hitArea = propsc.hitArea;
+			if (!propsc.visible || (!hitArea && !child.isVisible()) || (mouseEvents && !propsc.mouseEnabled)) { continue; }
 			var childHasHandler = mouseEvents && child._hasMouseHandler(mouseEvents);
 			
 			// if a child container has a handler and a hitArea then we only need to check its hitArea, so we can treat it as a normal DO:

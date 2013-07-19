@@ -100,6 +100,46 @@ this.createjs = this.createjs||{};
 
 (function() {
 
+createjs.DisplayObjectProps = function(props) {
+	var props = props || {};
+	this.alpha = props.alpha || 1;
+	this.cacheCanvas = props.cacheCanvas || null;
+	this.mouseEnabled = props.mouseEnabled || true;
+
+	this.name = props.name || null;
+	this.parent = props.parent || null;
+
+	this.regX = props.regX || 0;
+	this.regY = props.regY || 0;
+	this.rotation = props.rotation || 0;
+	this.scaleX = props.scaleX || 1;
+	this.scaleY = props.scaleY || 1;
+	this.skewX = props.skewX || 0;
+	this.skewY = props.skewY || 0;
+
+	this.shadow = props.shadow || null;
+	this.visible = props.visible || true;
+	this.x = props.x || 0;
+	this.y = props.y || 0;
+	this.compositeOperation = props.compositeOperation || null;
+	this.snapToPixel = props.snapToPixel || false;
+
+	this.filters = null;
+	this.cacheID = props.cacheID || 0;
+	this.mask = null;
+	this.hitArea = null;
+	this.cursor = null;
+	this._listeners = null;
+	this._cacheOffsetX = props._cacheOffsetX || 0;
+	this._cacheOffsetY = props._cacheOffsetY || 0;
+	this._cacheScale = props._cacheScale || 1;
+	this._cacheDataURLID = props._cacheDataURLID || 0;
+	this._cacheDataURL = props._cacheDataURL || null;
+
+	this.id = createjs.UID.get();
+	this._matrix = new createjs.Matrix2D();
+}
+
 /**
  * DisplayObject is an abstract class that should not be constructed directly. Instead construct subclasses such as
  * {{#crossLink "Container"}}{{/crossLink}}, {{#crossLink "Bitmap"}}{{/crossLink}}, and {{#crossLink "Shape"}}{{/crossLink}}.
@@ -562,42 +602,7 @@ var p = DisplayObject.prototype;
 	 * @protected
 	*/
 	p.initialize = function() {
-		this.alpha = 1;
-		this.cacheCanvas = null;
-		this.mouseEnabled = !0;
-
-		this.name = null;
-		this.parent = null;
-
-		this.regX = 0;
-		this.regY = 0;
-		this.rotation = 0;
-		this.scaleX = 1;
-		this.scaleY = 1;
-		this.skewX = 0;
-		this.skewY = 0;
-
-		this.shadow = null;
-		this.visible = !0;
-		this.x = 0;
-		this.y = 0;
-		this.compositeOperation = null;
-		this.snapToPixel = !1;
-
-		this.filters = null;
-		this.cacheID = 0;
-		this.mask = null;
-		this.hitArea = null;
-		this.cursor = null;
-		this._listeners = null;
-		createjs.EventDispatcher.initialize(this);
-		this._cacheOffsetX = 0;
-		this._cacheOffsetY = 0;
-		this._cacheScale = 1;
-		this._cacheDataURLID = 0;
-		this._cacheDataURL = null;
-		this.id = createjs.UID.get();
-		this._matrix = new createjs.Matrix2D();
+		this.props = new createjs.DisplayObjectProps(Object.getPrototypeOf(this).props);
 	}
 
 // public methods:
@@ -609,7 +614,8 @@ var p = DisplayObject.prototype;
 	 * @return {Boolean} Boolean indicating whether the display object would be visible if drawn to a canvas
 	 **/
 	p.isVisible = function() {
-		return !!(this.visible && this.alpha > 0 && this.scaleX != 0 && this.scaleY != 0);
+		var props = this.props;
+		return !(!props.visible || !(0 < props.alpha && 0 != props.scaleX && 0 != props.scaleY));
 	}
 
 	/**
@@ -623,10 +629,11 @@ var p = DisplayObject.prototype;
 	 * into itself).
 	 **/
 	p.draw = function(ctx, ignoreCache) {
-		var cacheCanvas = this.cacheCanvas;
+		var props = this.props;
+		var cacheCanvas = props.cacheCanvas;
 		if (ignoreCache || !cacheCanvas) { return false; }
-		var scale = this._cacheScale;
-		ctx.drawImage(cacheCanvas, this._cacheOffsetX, this._cacheOffsetY, cacheCanvas.width/scale, cacheCanvas.height/scale);
+		var scale = props._cacheScale;
+		ctx.drawImage(cacheCanvas, props._cacheOffsetX, props._cacheOffsetY, cacheCanvas.width / scale, cacheCanvas.height / scale);
 		return true;
 	}
 	
@@ -637,7 +644,7 @@ var p = DisplayObject.prototype;
 	 * @param {CanvasRenderingContext2D} ctx The canvas 2D to update.
 	 **/
 	p.updateContext = function(ctx) {
-		var mtx, mask=this.mask, o=this;
+		var props = this.props, mtx, mask = props.mask;
 		
 		if (mask && mask.graphics && !mask.graphics.isEmpty()) {
 			mtx = mask.getMatrix(mask._matrix);
@@ -650,13 +657,13 @@ var p = DisplayObject.prototype;
 			ctx.transform(mtx.a,  mtx.b, mtx.c, mtx.d, mtx.tx, mtx.ty);
 		}
 		
-		mtx = o._matrix.identity().appendTransform(o.x, o.y, o.scaleX, o.scaleY, o.rotation, o.skewX, o.skewY, o.regX, o.regY);
+		mtx = props._matrix.identity().appendTransform(props.x, props.y, props.scaleX, props.scaleY, props.rotation, props.skewX, props.skewY, props.regX, props.regY);
 		// TODO: should be a better way to manage this setting. For now, using dynamic access to avoid circular dependencies:
-		if (createjs["Stage"]._snapToPixelEnabled && o.snapToPixel) { ctx.transform(mtx.a,  mtx.b, mtx.c, mtx.d, mtx.tx+0.5|0, mtx.ty+0.5|0); }
+		if (createjs["Stage"]._snapToPixelEnabled && props.snapToPixel) { ctx.transform(mtx.a,  mtx.b, mtx.c, mtx.d, mtx.tx+0.5|0, mtx.ty+0.5|0); }
 		else { ctx.transform(mtx.a,  mtx.b, mtx.c, mtx.d, mtx.tx, mtx.ty); }
-		ctx.globalAlpha *= o.alpha;
-		if (o.compositeOperation) { ctx.globalCompositeOperation = o.compositeOperation; }
-		if (o.shadow) { this._applyShadow(ctx, o.shadow); }
+		ctx.globalAlpha *= props.alpha;
+		if (props.compositeOperation) { ctx.globalCompositeOperation = props.compositeOperation; }
+		if (props.shadow) { this._applyShadow(ctx, props.shadow); }
 	}
 
 	/**
@@ -679,13 +686,14 @@ var p = DisplayObject.prototype;
 	 **/
 	p.cache = function(x, y, width, height, scale) {
 		// draw to canvas.
+		var props = this.props;
 		scale = scale||1;
-		if (!this.cacheCanvas) { this.cacheCanvas = createjs.createCanvas?createjs.createCanvas():document.createElement("canvas"); }
-		this.cacheCanvas.width = Math.ceil(width*scale);
-		this.cacheCanvas.height = Math.ceil(height*scale);
-		this._cacheOffsetX = x;
-		this._cacheOffsetY = y;
-		this._cacheScale = scale||1;
+		if (!props.cacheCanvas) { props.cacheCanvas = createjs.createCanvas?createjs.createCanvas():document.createElement("canvas"); }
+		props.cacheCanvas.width = Math.ceil(width*scale);
+		props.cacheCanvas.height = Math.ceil(height*scale);
+		props._cacheOffsetX = x;
+		props._cacheOffsetY = y;
+		props._cacheScale = scale||1;
 		this.updateCache();
 	}
 
@@ -699,7 +707,8 @@ var p = DisplayObject.prototype;
 	 * whatwg spec on compositing</a>.
 	 **/
 	p.updateCache = function(compositeOperation) {
-		var cacheCanvas = this.cacheCanvas, scale = this._cacheScale, offX = this._cacheOffsetX*scale, offY = this._cacheOffsetY*scale;
+		var props = this.props,
+			cacheCanvas = props.cacheCanvas, scale = props._cacheScale, offX = props._cacheOffsetX*scale, offY = props._cacheOffsetY*scale;
 		if (!cacheCanvas) { throw "cache() must be called before updateCache()"; }
 		var ctx = cacheCanvas.getContext("2d");
 		ctx.save();
@@ -709,7 +718,7 @@ var p = DisplayObject.prototype;
 		this.draw(ctx, true);
 		this._applyFilters();
 		ctx.restore();
-		this.cacheID = DisplayObject._nextCacheID++;
+		props.cacheID = DisplayObject._nextCacheID++;
 	}
 
 	/**
@@ -717,9 +726,10 @@ var p = DisplayObject.prototype;
 	 * @method uncache
 	 **/
 	p.uncache = function() {
-		this._cacheDataURL = this.cacheCanvas = null;
-		this.cacheID = this._cacheOffsetX = this._cacheOffsetY = 0;
-		this._cacheScale = 1;
+		var props = this.props;
+		props._cacheDataURL = props.cacheCanvas = null;
+		props.cacheID = props._cacheOffsetX = props._cacheOffsetY = 0;
+		props._cacheScale = 1;
 	}
 	
 	/**
@@ -728,9 +738,10 @@ var p = DisplayObject.prototype;
 	* @method getCacheDataURL.
 	**/
 	p.getCacheDataURL = function() {
-		if (!this.cacheCanvas) { return null; }
-		if (this.cacheID != this._cacheDataURLID) { this._cacheDataURL = this.cacheCanvas.toDataURL(); }
-		return this._cacheDataURL;
+		var props = this.props;
+		if (!props.cacheCanvas) { return null; }
+		if (props.cacheID != props._cacheDataURLID) { props._cacheDataURL = props.cacheCanvas.toDataURL(); }
+		return props._cacheDataURL;
 	}
 
 	/**
@@ -742,7 +753,7 @@ var p = DisplayObject.prototype;
 	p.getStage = function() {
 		var o = this;
 		while (o.parent) {
-			o = o.parent;
+			o = o.props.parent;
 		}
 		// using dynamic access to avoid circular dependencies;
 		if (o instanceof createjs["Stage"]) { return o; }
@@ -761,7 +772,8 @@ var p = DisplayObject.prototype;
 	 * on the stage.
 	 **/
 	p.localToGlobal = function(x, y) {
-		var mtx = this.getConcatenatedMatrix(this._matrix);
+		var props = this.props,
+			mtx = this.getConcatenatedMatrix(props._matrix);
 		if (mtx == null) { return null; }
 		mtx.append(1, 0, 0, 1, x, y);
 		return new createjs.Point(mtx.tx, mtx.ty);
@@ -779,7 +791,8 @@ var p = DisplayObject.prototype;
 	 * display object's coordinate space.
 	 **/
 	p.globalToLocal = function(x, y) {
-		var mtx = this.getConcatenatedMatrix(this._matrix);
+		var props = this.props,
+		var mtx = this.getConcatenatedMatrix(props._matrix);
 		if (mtx == null) { return null; }
 		mtx.invert();
 		mtx.append(1, 0, 0, 1, x, y);
@@ -819,15 +832,16 @@ var p = DisplayObject.prototype;
 	 * @return {DisplayObject} Returns this instance. Useful for chaining commands.
 	*/
 	p.setTransform = function(x, y, scaleX, scaleY, rotation, skewX, skewY, regX, regY) {
-		this.x = x || 0;
-		this.y = y || 0;
-		this.scaleX = scaleX == null ? 1 : scaleX;
-		this.scaleY = scaleY == null ? 1 : scaleY;
-		this.rotation = rotation || 0;
-		this.skewX = skewX || 0;
-		this.skewY = skewY || 0;
-		this.regX = regX || 0;
-		this.regY = regY || 0;
+		var props = this.props;
+		props.x = x || 0;
+		props.y = y || 0;
+		props.scaleX = scaleX == null ? 1 : scaleX;
+		props.scaleY = scaleY == null ? 1 : scaleY;
+		props.rotation = rotation || 0;
+		props.skewX = skewX || 0;
+		props.skewY = skewY || 0;
+		props.regX = regX || 0;
+		props.regY = regY || 0;
 		return this;
 	}
 	
@@ -839,8 +853,8 @@ var p = DisplayObject.prototype;
 	 * @return {Matrix2D} A matrix representing this display object's transform.
 	 **/
 	p.getMatrix = function(matrix) {
-		var o = this;
-		return (matrix ? matrix.identity() : new createjs.Matrix2D()).appendTransform(o.x, o.y, o.scaleX, o.scaleY, o.rotation, o.skewX, o.skewY, o.regX, o.regY).appendProperties(o.alpha, o.shadow, o.compositeOperation);
+		var props = this.props;
+		return (matrix ? matrix.identity() : new createjs.Matrix2D()).appendTransform(props.x, props.y, props.scaleX, props.scaleY, props.rotation, props.skewX, props.skewY, props.regX, props.regY).appendProperties(props.alpha, props.shadow, props.compositeOperation);
 	}
 	
 	/**
@@ -855,12 +869,14 @@ var p = DisplayObject.prototype;
 	 * the display object and all of its parent Containers up to the highest level ancestor (usually the stage).
 	 **/
 	p.getConcatenatedMatrix = function(matrix) {
+		var props;
 		if (matrix) { matrix.identity(); }
 		else { matrix = new createjs.Matrix2D(); }
 		var o = this;
 		while (o != null) {
-			matrix.prependTransform(o.x, o.y, o.scaleX, o.scaleY, o.rotation, o.skewX, o.skewY, o.regX, o.regY).prependProperties(o.alpha, o.shadow, o.compositeOperation);
-			o = o.parent;
+			props = o.props;
+			matrix.prependTransform(props.x, props.y, props.scaleX, props.scaleY, props.rotation, props.skewX, props.skewY, props.regX, props.regY).prependProperties(props.alpha, props.shadow, props.compositeOperation);
+			o = props.parent;
 		}
 		return matrix;
 	}
@@ -932,24 +948,25 @@ var p = DisplayObject.prototype;
 	 * instance copied into.
 	 **/
 	p.cloneProps = function(o) {
-		o.alpha = this.alpha;
-		o.name = this.name;
-		o.regX = this.regX;
-		o.regY = this.regY;
-		o.rotation = this.rotation;
-		o.scaleX = this.scaleX;
-		o.scaleY = this.scaleY;
-		o.shadow = this.shadow;
-		o.skewX = this.skewX;
-		o.skewY = this.skewY;
-		o.visible = this.visible;
-		o.x  = this.x;
-		o.y = this.y;
-		o.mouseEnabled = this.mouseEnabled;
-		o.compositeOperation = this.compositeOperation;
-		if (this.cacheCanvas) {
-			o.cacheCanvas = this.cacheCanvas.cloneNode(true);
-			o.cacheCanvas.getContext("2d").putImageData(this.cacheCanvas.getContext("2d").getImageData(0,0,this.cacheCanvas.width,this.cacheCanvas.height),0,0);
+		var props = this.props, newProps = o.props;
+		newProps.alpha = props.alpha;
+		newProps.name = props.name;
+		newProps.regX = props.regX;
+		newProps.regY = props.regY;
+		newProps.rotation = props.rotation;
+		newProps.scaleX = props.scaleX;
+		newProps.scaleY = props.scaleY;
+		newProps.shadow = props.shadow;
+		newProps.skewX = props.skewX;
+		newProps.skewY = props.skewY;
+		newProps.visible = props.visible;
+		newProps.x = props.x;
+		newProps.y = props.y;
+		newProps.mouseEnabled = props.mouseEnabled;
+		newProps.compositeOperation = props.compositeOperation;
+		if (props.cacheCanvas) {
+			newProps.cacheCanvas = props.cacheCanvas.cloneNode(true);
+			newProps.cacheCanvas.getContext("2d").putImageData(props.cacheCanvas.getContext("2d").getImageData(0,0,props.cacheCanvas.width,props.cacheCanvas.height),0,0);
 		}
 	}
 
@@ -973,10 +990,11 @@ var p = DisplayObject.prototype;
 	 * @protected
 	 **/
 	p._tick = function(params) {
+		var props = this.props;
 		this.onTick&&this.onTick.apply(this, params);
 		// because onTick can be really performance sensitive, we'll inline some of the dispatchEvent work.
 		// this can probably go away at some point. It only has a noticeable impact with thousands of objects in modern browsers.
-		var ls = this._listeners;
+		var ls = props._listeners;
 		if (ls&&ls["tick"]) { this.dispatchEvent({type:"tick",params:params}); }
 	}
 
@@ -1002,13 +1020,14 @@ var p = DisplayObject.prototype;
 	 * @protected
 	 **/
 	p._applyFilters = function() {
-		if (!this.filters || this.filters.length == 0 || !this.cacheCanvas) { return; }
-		var l = this.filters.length;
-		var ctx = this.cacheCanvas.getContext("2d");
-		var w = this.cacheCanvas.width;
-		var h = this.cacheCanvas.height;
+		var props = this.props;
+		if (!props.filters || props.filters.length == 0 || !props.cacheCanvas) { return; }
+		var l = props.filters.length;
+		var ctx = props.cacheCanvas.getContext("2d");
+		var w = props.cacheCanvas.width;
+		var h = props.cacheCanvas.height;
 		for (var i=0; i<l; i++) {
-			this.filters[i].applyFilter(ctx, 0, 0, w, h);
+			props.filters[i].applyFilter(ctx, 0, 0, w, h);
 		}
 	};
 	
@@ -1021,16 +1040,171 @@ var p = DisplayObject.prototype;
 	 * @protected
 	 **/
 	p._hasMouseHandler = function(typeMask) {
-		var ls = this._listeners;
+		var props = this.props,
+			ls = this._listeners;
 		return !!(
-				 (typeMask&1 && (this.onPress || this.onClick || this.onDoubleClick || 
+				 (typeMask&1 && (this.onPress || this.onClick || this.onDoubleClick ||
 				 (ls && (this.hasEventListener("mousedown") || this.hasEventListener("click") || this.hasEventListener("dblclick")))))
 				 ||
-				 (typeMask&2 && (this.onMouseOver || this.onMouseOut || this.cursor ||
+				 (typeMask&2 && (this.onMouseOver || this.onMouseOut || props.cursor ||
 				 (ls && (this.hasEventListener("mouseover") || this.hasEventListener("mouseout")))))
 				 );
 	};
 	 
+	Object.defineProperty(p, "alpha", {
+		get: function get_alpha() { return this.props.alpha; },
+		set: function set_alpha(v) {this.props.alpha = v;}
+	});
 
-createjs.DisplayObject = DisplayObject;
+	Object.defineProperty(p, "cacheCanvas", {
+		get: function get_cacheCanvas() { return this.props.cacheCanvas; },
+		set: function set_cacheCanvas(v) {this.props.cacheCanvas = v;}
+	});
+
+	Object.defineProperty(p, "id", {
+		get: function get_id() { return this.props.id; },
+		set: function set_id(v) {this.props.id = v;}
+	});
+
+	Object.defineProperty(p, "mouseEnabled", {
+		get: function get_mouseEnabled() { return this.props.mouseEnabled; },
+		set: function set_mosueEnabled(v) {this.props.mouseEnabled = v;}
+	});
+
+	Object.defineProperty(p, "name", {
+		get: function get_name() { return this.props.name; },
+		set: function set_name(v) {this.props.name = v;}
+	});
+
+	Object.defineProperty(p, "parent", {
+		get: function get_parent() { return this.props.parent; },
+		set: function set_parent(v) {this.props.parent = v;}
+	});
+
+	Object.defineProperty(p, "regX", {
+		get: function get_regX() { return this.props.regX; },
+		set: function set_regX(v) {this.props.regX = v;}
+	});
+
+	Object.defineProperty(p, "regY", {
+		get: function get_regY() { return this.props.regY; },
+		set: function set_regY(v) {this.props.regY = v;}
+	});
+
+	Object.defineProperty(p, "rotation", {
+		get: function get_rotation() { return this.props.rotation; },
+		set: function set_rotation(v) {this.props.rotation = v;}
+	});
+
+	Object.defineProperty(p, "scaleX", {
+		get: function get_scaleX() { return this.props.scaleX; },
+		set: function set_scaleX(v) {this.props.scaleX = v;}
+	});
+
+	Object.defineProperty(p, "scaleY", {
+		get: function get_scaleY() { return this.props.scaleY; },
+		set: function set_scaleY(v) {this.props.scaleY = v;}
+	});
+
+	Object.defineProperty(p, "skewX", {
+		get: function get_skewX() { return this.props.skewX; },
+		set: function set_skewX(v) {this.props.skewX = v;}
+	});
+
+	Object.defineProperty(p, "skewY", {
+		get: function get_skewY() { return this.props.skewY; },
+		set: function set_skewY(v) {this.props.skewY = v;}
+	});
+
+	Object.defineProperty(p, "shadow", {
+		get: function get_shadow() { return this.props.shadow; },
+		set: function set_shadow(v) {this.props.shadow = v;}
+	});
+
+	Object.defineProperty(p, "visible", {
+		get: function get_visible() { return this.props.visible; },
+		set: function set_visible(v) {this.props.visible = v;}
+	});
+
+	Object.defineProperty(p, "x", {
+		get: function get_x() { return this.props.x; },
+		set: function set_x(v) {this.props.x = v;}
+	});
+
+	Object.defineProperty(p, "y", {
+		get: function get_y() { return this.props.y; },
+		set: function set_y(v) {this.props.y = v;}
+	});
+
+	Object.defineProperty(p, "compositeOperation", {
+		get: function get_compositeOperation() { return this.props.compositeOperation; },
+		set: function set_compositeOperation(v) {this.props.compositeOperation = v;}
+	});
+
+	Object.defineProperty(p, "snapToPixel", {
+		get: function get_snapToPixel() { return this.props.snapToPixel; },
+		set: function set_snapToPixel(v) {this.props.snapToPixel = v;}
+	});
+
+	Object.defineProperty(p, "filters", {
+		get: function get_filters() { return this.props.filters; },
+		set: function set_filters(v) {this.props.filters = v;}
+	});
+
+	Object.defineProperty(p, "cacheID", {
+		get: function get_cacheID() { return this.props.cacheID; },
+		set: function set_cacheID(v) {this.props.cacheID = v;}
+	});
+
+	Object.defineProperty(p, "mask", {
+		get: function get_mask() { return this.props.mask; },
+		set: function set_mask(v) {this.props.mask = v;}
+	});
+
+	Object.defineProperty(p, "hitArea", {
+		get: function get_hitArea() { return this.props.hitArea; },
+		set: function set_hitArea(v) {this.props.hitArea = v;}
+	});
+
+	Object.defineProperty(p, "cursor", {
+		get: function get_cursor() { return this.props.cursor; },
+		set: function set_cursor(v) {this.props.cursor = v;}
+	});
+
+	Object.defineProperty(p, "_listeners", {
+		get: function get__listeners() { return this.props._listeners; },
+		set: function set__listeners(v) {this.props._listeners = v;}
+	});
+
+	Object.defineProperty(p, "_cacheOffsetX", {
+		get: function get__cacheOffsetX() { return this.props._cacheOffsetX; },
+		set: function set__cacheOffsetX(v) {this.props._cacheOffsetX = v;}
+	});
+
+	Object.defineProperty(p, "_cacheOffsetY", {
+		get: function get__cacheOffsetY() { return this.props._cacheOffsetY; },
+		set: function set__cacheOffsetY(v) {this.props._cacheOffsetY = v;}
+	});
+
+	Object.defineProperty(p, "_cacheScale", {
+		get: function get__cacheScale() { return this.props._cacheScale; },
+		set: function set__cacheScale(v) {this.props._cacheScale = v;}
+	});
+
+	Object.defineProperty(p, "_cacheDataURLID", {
+		get: function get__cacheDataURLID() { return this.props._cacheDataURLID; },
+		set: function set__cacheDataURLID(v) {this.props._cacheDataURLID = v;}
+	});
+
+	Object.defineProperty(p, "_cacheDataURL", {
+		get: function get__cacheDataURL() { return this.props._cacheDataURL; },
+		set: function set__cacheDataURL(v) {this.props._cacheDataURL = v;}
+	});
+
+	Object.defineProperty(p, "_matrix", {
+		get: function get__matrix() { return this.props._matrix; },
+		set: function set__matrix(v) {this.props._matrix = v;}
+	});
+
+	createjs.DisplayObject = DisplayObject;
 }());

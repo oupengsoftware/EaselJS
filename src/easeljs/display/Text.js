@@ -175,8 +175,9 @@ var p = Text.prototype = new createjs.DisplayObject();
 	 * @return {Boolean} Whether the display object would be visible if drawn to a canvas
 	 **/
 	p.isVisible = function() {
-		var hasContent = this.cacheCanvas || (this.text != null && this.text !== "");
-		return !!(this.visible && this.alpha > 0 && this.scaleX != 0 && this.scaleY != 0 && hasContent);
+		var props = this.props;
+		var hasContent = props.cacheCanvas || (this.text != null && this.text !== "");
+		return !!(props.visible && props.alpha > 0 && props.scaleX != 0 && props.scaleY != 0 && hasContent);
 	}
 
 	/**
