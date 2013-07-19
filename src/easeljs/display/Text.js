@@ -156,6 +156,12 @@ var p = Text.prototype = new createjs.DisplayObject();
 	*/
 	p.initialize = function(text, font, color) {
 		this.DisplayObject_initialize();
+		this.textAlign = "left";
+		this.textBaseline = "top";
+		this.maxWidth = null;
+		this.outline = false;
+		this.lineHeight = 0;
+		this.lineWidth = null;
 		this.text = text;
 		this.font = font;
 		this.color = color ? color : "#000";

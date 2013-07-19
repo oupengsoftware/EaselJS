@@ -331,6 +331,15 @@ var p = Graphics.prototype;
 	 * @protected
 	 **/
 	p.initialize = function() {
+		this._strokeInstructions = null;
+		this._strokeStyleInstructions = null;
+		this._ignoreScaleStroke = false;
+		this._fillInstructions = null;
+		this._instructions = null;
+		this._oldInstructions = null;
+		this._activeInstructions = null;
+		this._active = false;
+		this._dirty = false;
 		this.clear();
 		this._ctx = Graphics._ctx;
 	};

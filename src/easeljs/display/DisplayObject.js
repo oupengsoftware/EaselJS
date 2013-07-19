@@ -562,6 +562,40 @@ var p = DisplayObject.prototype;
 	 * @protected
 	*/
 	p.initialize = function() {
+		this.alpha = 1;
+		this.cacheCanvas = null;
+		this.mouseEnabled = !0;
+
+		this.name = null;
+		this.parent = null;
+
+		this.regX = 0;
+		this.regY = 0;
+		this.rotation = 0;
+		this.scaleX = 1;
+		this.scaleY = 1;
+		this.skewX = 0;
+		this.skewY = 0;
+
+		this.shadow = null;
+		this.visible = !0;
+		this.x = 0;
+		this.y = 0;
+		this.compositeOperation = null;
+		this.snapToPixel = !1;
+
+		this.filters = null;
+		this.cacheID = 0;
+		this.mask = null;
+		this.hitArea = null;
+		this.cursor = null;
+		this._listeners = null;
+		createjs.EventDispatcher.initialize(this);
+		this._cacheOffsetX = 0;
+		this._cacheOffsetY = 0;
+		this._cacheScale = 1;
+		this._cacheDataURLID = 0;
+		this._cacheDataURL = null;
 		this.id = createjs.UID.get();
 		this._matrix = new createjs.Matrix2D();
 	}

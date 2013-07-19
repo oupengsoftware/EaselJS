@@ -91,6 +91,8 @@ var p = Bitmap.prototype = new createjs.DisplayObject();
 	 **/
 	p.initialize = function(imageOrUri) {
 		this.DisplayObject_initialize();
+		this.snapToPixel = true;
+		this.sourceRect = null;
 		if (typeof imageOrUri == "string") {
 			this.image = new Image();
 			this.image.src = imageOrUri;

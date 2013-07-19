@@ -144,6 +144,9 @@ var p = Matrix2D.prototype;
 	 * @return {Matrix2D} This matrix. Useful for chaining method calls.
 	*/
 	p.initialize = function(a, b, c, d, tx, ty) {
+		this.alpha = 1;
+		this.shadow = null;
+		this.compositeOperation = null;
 		if (a != null) { this.a = a; }
 		this.b = b || 0;
 		this.c = c || 0;

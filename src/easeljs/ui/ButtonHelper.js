@@ -136,6 +136,8 @@ var p = ButtonHelper.prototype;
 			}
 			target.hitArea = hitArea;
 		}
+		this._isPressed = false;
+		this._isOver = false;
 	};
 	
 // public methods:
